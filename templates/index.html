@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Meta Live Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #111; color: #eee; }
+    h1 { margin-bottom: 16px; }
+    .controls { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    select, button {
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #333;
+      background: #1b1b1b; color: #eee;
+    }
+    button { cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; background: #181818; }
+    th, td { padding: 10px; border-bottom: 1px solid #2a2a2a; text-align: left; }
+    th { background: #202020; position: sticky; top: 0; }
+    .Protect { color: #5dd39e; font-weight: 700; }
+    .Hold { color: #ffd166; font-weight: 700; }
+    .Test { color: #7cc6fe; font-weight: 700; }
+    .Cut { color: #ff6b6b; font-weight: 700; }
+    #status { margin: 10px 0 16px; color: #bbb; }
+  </style>
+</head>
+<body>
+  <h1>Meta Live Dashboard</h1>
+
+  <div class="controls">
+    <select id="level">
+      <option value="campaign">Campaign</option>
+      <option value="adset">Ad Set</option>
+      <option value="ad">Ad</option>
+    </select>
+
+    <select id="date_preset">
+      <option value="today">Today</option>
+      <option value="yesterday">Yesterday</option>
+      <option value="last_3d">Last 3 Days</option>
+      <option value="last_7d">Last 7 Days</option>
+      <option value="this_month">This Month</option>
+    </select>
+
+    <button onclick="loadData()">Refresh</button>
+  </div>
+
+  <div id="status">Ready.</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Spend</th>
+        <th>LPV</th>
+        <th>ATC</th>
+        <th>IC</th>
+        <th>Purchases</th>
+        <th>Value</th>
+        <th>ROAS</th>
+        <th>CPA</th>
+        <th>LPV→Purchase %</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+
+  <script>
+    async function loadData() {
+      const level = document.getElementById("level").value;
+      const datePreset = document.getElementById("date_preset").value;
+      const status = document.getElementById("status");
+      const tbody = document.getElementById("table-body");
+
+      status.textContent = "Loading...";
+      tbody.innerHTML = "";
+
+      try {
+        const res = await fetch(`/api/insights?level=${level}&date_preset=${datePreset}`);
+        const json = await res.json();
+
+        if (json.error) {
+          status.textContent = "Error: " + JSON.stringify(json.error);
+          return;
+        }
+
+        const rows = json.data || [];
+        status.textContent = `${rows.length} rows loaded`;
+
+        rows.forEach(row => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${row.name}</td>
+            <td>₹${row.spend}</td>
+            <td>${row.lpv}</td>
+            <td>${row.atc}</td>
+            <td>${row.ic}</td>
+            <td>${row.purchases}</td>
+            <td>₹${row.purchase_value}</td>
+            <td>${row.roas}</td>
+            <td>${row.cpa === null ? "-" : "₹" + row.cpa}</td>
+            <td>${row.lpv_to_purchase_rate}%</td>
+            <td class="${row.action}">${row.action}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        status.textContent = "Error: " + e.message;
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
